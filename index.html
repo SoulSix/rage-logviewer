@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Combat Log Parser</title>
+    <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<h1>Combat Log Parser</h1>
+
+<div class="controls">
+    <input type="file" id="logFileInput" accept=".txt,.log,.csv"/>
+    <button id="parseButton">Parse Log</button>
+    <div id="logSummary"></div>
+</div>
+
+<!-- Time frame filter -->
+<div class="time-filter">
+    <h2>Time Frame</h2>
+    <div id="timeBoundsInfo"></div>
+
+    <div class="time-filter-row">
+        <label>
+            From:
+            <input type="datetime-local" id="timeStartISO"/>
+        </label>
+
+        <label>
+            To:
+            <input type="datetime-local" id="timeEndISO"/>
+        </label>
+
+        <button id="applyTimeFilter">Apply</button>
+        <button id="resetTimeFilter">Reset</button>
+    </div>
+
+    <div id="timeHumanReadable"></div>
+</div>
+
+<!-- Collapsible summary section -->
+<div class="summary-section">
+    <div class="summary-header">
+        <button id="summaryCollapseToggle" class="summary-toggle-btn">
+            <span id="summaryToggleIcon">▼</span>
+            <span><strong>Summary</strong></span>
+        </button>
+    </div>
+
+    <div id="summaryBody" class="summary-body">
+        <div class="results-wrapper">
+            <div class="results-section">
+                <h2 class="col-dmg">Total Damage Done (Direct + DoT)</h2>
+                <div id="damageDoneTableContainer"></div>
+            </div>
+
+            <div class="results-section">
+                <h2 class="col-heal">Total Healing Done</h2>
+                <div id="healingDoneTableContainer"></div>
+            </div>
+
+            <div class="results-section">
+                <h2 class="col-tank">Total Damage Received</h2>
+                <div id="damageReceivedTableContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Entity details section (collapsible) -->
+<div class="entity-details-section">
+    <div class="entity-details-header">
+        <button id="entityDetailsToggle" class="entity-toggle-btn">
+            <span id="entityToggleIcon">▼</span>
+            <span><strong>Player Details</strong></span>
+        </button>
+    </div>
+
+    <div id="entityDetailsBody" class="entity-details-body">
+        <div class="entity-selector-row">
+            <label>
+                Player name:
+                <input
+                        id="entityInput"
+                        list="entityList"
+                        placeholder="Type a name..."
+                        autocomplete="off"
+                />
+            </label>
+            <button id="showEntityDetails">Show</button>
+            <span id="entityDetailsHint" class="entity-details-hint"></span>
+        </div>
+        <datalist id="entityList"></datalist>
+
+        <div id="entityDetailsContainer"></div>
+    </div>
+</div>
+
+<button id="debugToggle" class="hidden">Toggle Debug (raw data)</button>
+<div id="debugOutput" class="hidden"></div>
+
+<script src="scripts/parser.js"></script>
+</body>
+</html>
