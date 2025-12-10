@@ -166,6 +166,43 @@ function buildEntityAppliedBuffsByEffect(entity) {
     return result;
 }
 
+function setInitialTimeFilterLast30Minutes() {
+    if (timeBounds.min == null || timeBounds.max == null) return;
+
+    // 30 minutes in seconds
+    const THIRTY_MIN = 30 * 60;
+    const candidateStart = timeBounds.max - THIRTY_MIN;
+
+    // Clamp to earliest timestamp if the log is shorter than 30 minutes
+    const start = Math.max(candidateStart, timeBounds.min);
+    const end = timeBounds.max;
+
+    timeFilter.enabled = true;
+    timeFilter.start = start;
+    timeFilter.end = end;
+
+    const startInput = document.getElementById("timeStartISO");
+    const endInput = document.getElementById("timeEndISO");
+    const human = document.getElementById("timeHumanReadable");
+
+    if (startInput && endInput) {
+        startInput.value = epochToLocalInput(start);
+        endInput.value = epochToLocalInput(end);
+    }
+
+    if (human) {
+        human.textContent =
+            "Current filter: last ~30 minutes (" +
+            formatTimestamp(start) +
+            " → " +
+            formatTimestamp(end) +
+            ")";
+    }
+
+    // Recompute stats for this window
+    renderTables();
+}
+
 
 // --- Parsing logic --------------------------------------------------------
 
@@ -645,20 +682,24 @@ function renderEntityDetails(entityName) {
     const totalHeal = Array.from(healBySkill.values()).reduce((a, b) => a + b, 0);
     const totalTaken = topDamageSources.reduce((sum, [, v]) => sum + v, 0);
 
-    let html = ``;
+    let html = `<div class="entity-details-header">
+    <strong>${entityName}</strong>
+  </div>`;
 
-    // Wrapper: 2 flex columns
+    // Wrapper: 3 flex columns now
     html += `<div class="entity-details-grid">
     <div class="entity-details-column">`;
 
     // COLUMN 1, SECTION 1 — Damage by skill (RED)
     html += `<div class="entity-subsection entity-subsection--dmg">
-    <h3>Damage by Skill</h3>`;
+    <h3>Damage (by skill)</h3>`;
 
     if (!dmgBySkill.size) {
         html += `<p><small>No damage done.</small></p>`;
     } else {
-        html += `<table class="entity-metric-table"><thead><tr><th>Skill</th><th>Damage</th><th>%</th></tr></thead><tbody>`;
+        html += `<table class="entity-metric-table"><thead><tr>
+      <th>Skill</th><th>Damage</th><th>%</th>
+    </tr></thead><tbody>`;
         for (const [skill, amount] of [...dmgBySkill.entries()].sort((a, b) => b[1] - a[1])) {
             const pct = totalDmg ? (amount / totalDmg) * 100 : 0;
             html += `<tr>
@@ -674,12 +715,14 @@ function renderEntityDetails(entityName) {
 
     // COLUMN 1, SECTION 2 — Healing by skill (GREEN)
     html += `<div class="entity-subsection entity-subsection--heal">
-    <h3>Healing by Skill</h3>`;
+    <h3>Healing (by skill)</h3>`;
 
     if (!healBySkill.size) {
         html += `<p><small>No healing done.</small></p>`;
     } else {
-        html += `<table class="entity-metric-table"><thead><tr><th>Skill</th><th>Healing</th><th>%</th></tr></thead><tbody>`;
+        html += `<table class="entity-metric-table"><thead><tr>
+      <th>Skill</th><th>Healing</th><th>%</th>
+    </tr></thead><tbody>`;
         for (const [skill, amount] of [...healBySkill.entries()].sort((a, b) => b[1] - a[1])) {
             const pct = totalHeal ? (amount / totalHeal) * 100 : 0;
             html += `<tr>
@@ -695,12 +738,14 @@ function renderEntityDetails(entityName) {
 
     // COLUMN 1, SECTION 3 — Damage received by source (BLUE)
     html += `<div class="entity-subsection entity-subsection--tank">
-    <h3>Damage Received (by Source)</h3>`;
+    <h3>Damage received (by attacker)</h3>`;
 
     if (!topDamageSources.length) {
         html += `<p><small>No damage taken.</small></p>`;
     } else {
-        html += `<table class="entity-metric-table"><thead><tr><th>Source</th><th>Damage</th><th>%</th></tr></thead><tbody>`;
+        html += `<table class="entity-metric-table"><thead><tr>
+      <th>Source</th><th>Damage</th><th>%</th>
+    </tr></thead><tbody>`;
         for (const [source, amount] of topDamageSources) {
             const pct = totalTaken ? (amount / totalTaken) * 100 : 0;
             html += `<tr>
@@ -714,12 +759,12 @@ function renderEntityDetails(entityName) {
 
     html += `</div>`; // end col1 section3
 
-    // Close column 1, open column 2
+    // Close column 1, open column 2 (BUFFS)
     html += `</div><div class="entity-details-column">`;
 
-    // COLUMN 2, SECTION 1 — Buffs applied (by effect) (YELLOW)
+    // COLUMN 2 — Buffs applied (YELLOW)
     html += `<div class="entity-subsection entity-subsection--buff">
-    <h3>Buffs Applied (by Effect)</h3>`;
+    <h3>Buffs applied by ${entityName}</h3>`;
 
     if (!appliedBuffs.length) {
         html += `<p><small>No buffs applied.</small></p>`;
@@ -736,11 +781,14 @@ function renderEntityDetails(entityName) {
         html += `</tbody></table>`;
     }
 
-    html += `</div>`; // end col2 section1
+    html += `</div>`; // end column 2
 
-    // COLUMN 2, SECTION 2 — Debuffs applied (by effect) (YELLOW)
+    // Close column 2, open column 3 (DEBUFFS)
+    html += `</div><div class="entity-details-column">`;
+
+    // COLUMN 3 — Debuffs applied (YELLOW)
     html += `<div class="entity-subsection entity-subsection--buff">
-    <h3>Debuffs Applied (by Effect)</h3>`;
+    <h3>Debuffs applied by ${entityName}</h3>`;
 
     if (!appliedDebuffs.length) {
         html += `<p><small>No debuffs applied.</small></p>`;
@@ -757,9 +805,9 @@ function renderEntityDetails(entityName) {
         html += `</tbody></table>`;
     }
 
-    html += `</div>`; // end col2 section2
+    html += `</div>`; // end column 3 subsection
 
-    html += `</div></div>`; // close columns + grid
+    html += `</div></div>`; // close column 3 + grid
 
     container.innerHTML = html;
 
@@ -829,10 +877,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 parseLine(line);
             }
 
-            resetTimeFilterToFullRange();
-            renderTables();
-            renderSummary(file.name);
+            // Show bounds and wire inputs
             setupTimeFilterUI();
+
+            // Default window: last 30 minutes of the log
+            setInitialTimeFilterLast30Minutes();
+
+            renderSummary(file.name);
             renderDebug();
             updateEntityDatalist();
             renderEntityDetails("");
